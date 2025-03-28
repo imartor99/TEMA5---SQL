@@ -1,0 +1,120 @@
+/* Crea un procedimiento para la base de datos GIMNASIO que calcule el montante total de recibos
+ pagados por cada usuario y lo almacene en una tabla auxiliar 
+ que tendrá los siguientes campos: nombre del usuario, fecha y total pagado. */
+-- DECLARAR CURSOR, DECLARAR HANDLER, ABRIR CURSOR, RECORRER CURSOR CON LOOP, CERRAR CURSOR.
+DELIMITER //
+DROP PROCEDURE IF EXISTS CalcularMontanteTotal //
+CREATE PROCEDURE CalcularMontanteTotal()
+BEGIN
+	DECLARE TERMINADO BOOLEAN DEFAULT FALSE;
+    DECLARE V_NUM_SOCIO VARCHAR(10);
+    DECLARE V_NOMBRE VARCHAR(20);
+    DECLARE V_APELLIDOS VARCHAR(30);
+	DECLARE V_TOTAL_PAG INT;
+    
+	DECLARE cur CURSOR FOR SELECT U.NUM_SOCIO, U.NOMBRE, U.APELLIDOS, COALESCE(SUM(P.CUOTA),0)
+							FROM USUARIOS U JOIN PAGOS P USING (NUM_SOCIO)
+							GROUP BY NUM_SOCIO;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET TERMINADO = true;
+    
+    -- CREO TABLA AUXILIAR 
+    CREATE TABLE recibos_totales (
+		NUM_SOCIO VARCHAR(10),
+        NOMBRE VARCHAR(20),
+        APELLIDO VARCHAR(30),
+        FECHA DATE,
+        TOTAL_PAGADO INT
+);
+    
+    -- Abrir cursor
+    OPEN cur;
+		-- RECORRER CURSOR CON LOOP
+		bucle:LOOP
+			FETCH cur INTO V_NUM_SOCIO, V_NOMBRE, V_APELLIDOS, V_TOTAL_PAG;
+			IF TERMINADO=TRUE THEN 
+				LEAVE bucle;
+			END IF;
+            
+            -- Usar COALESCE para evitar valores nulos en TOTAL_PAG
+            SET V_TOTAL_PAG = COALESCE(V_TOTAL_PAG, 0);
+			
+            -- Insertar datos en TABLA AUXILIAR
+            INSERT INTO recibos_totales (NUM_SOCIO, NOMBRE, APELLIDO, FECHA, TOTAL_PAGADO)
+            VALUES (V_NUM_SOCIO, V_NOMBRE, V_APELLIDOS, CURDATE(), V_TOTAL_PAG);
+		END LOOP;
+        
+        -- CERRAR CURSOR
+        CLOSE cur;
+END //
+DELIMITER ;
+        
+		
+        
+    
+    
+				
+
+
+/* 2. Con la base de datos emple_depart, crea un procedimiento que calcule una bonificación extra de salario para cada empleado
+ y lo registre en una tabla auxiliar de historial de bonificaciones,  teniendo en cuenta lo siguiente:
+ /* a) Si el empleado trabaja en el departamento de Ventas y gana menos de 30000, su bonificación será del 8% */
+/* b) Si trabaja en Contabilidad y gana menos de 25000, será del 10% y en otro caso del 7%. */
+/* c) El resto de departamentos y salarios tendrán una bonificación del 1%. */
+/* Además, actualizará el salario del empleado con la bonificación aplicada. */
+-- DECLARAR CURSOR, DECLARAR HANDLER, ABRIR CURSOR, RECORRER CURSOR CON LOOP, CERRAR CURSOR.
+
+CREATE TABLE historial_salarios (
+	emp_no INT,
+    apellido VARCHAR(10),
+    dnombre VARCHAR(14),
+    bono DECIMAL(6,2),
+    fecha DATE,
+    salario_old DECIMAL(8,2),
+	salario_new DECIMAL(8,2)
+);
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS CalcularBono //
+CREATE PROCEDURE CalcularBono ()
+BEGIN
+	DECLARE terminado BOOLEAN DEFAULT false;
+	DECLARE v_emp_no INT;
+    DECLARE v_apellido VARCHAR(10);                  -- Declaro una variable por cada campo de las tabla/s que quiero usar luego. Con v_....
+    DECLARE v_dnombre VARCHAR(14);
+    DECLARE v_salario DECIMAL(8,2);
+    DECLARE v_bono DECIMAL(6,2);
+
+	DECLARE c_empleados CURSOR FOR SELECT emp_no, apellido, dnombre, salario
+									FROM empleados JOIN departamentos USING (dep_no);
+                                    
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET terminado = true;
+    
+    -- Abrimos cursor
+    OPEN c_empleados;
+    
+    -- Recorrer cursor con loop
+    bucle:LOOP
+		FETCH c_empleados INTO v_emp_no, v_apellido, v_dnombre, v_salario; -- fetch METE CADA CAMPO DE LA TABLA EN CADA VARIABLE.
+        IF terminado=true THEN
+			LEAVE bucle;
+		END IF;
+        
+		-- Calcular bonificación
+        SET v_bono = CASE      -- Meto en la variable v_bono el resultado del siguiente CASE
+						WHEN v_dnombre = 'VENTAS' AND v_salario < 30000 THEN v_salario*0.08
+						WHEN v_dnombre = 'CONTABILIDAD' AND v_salario < 25000 THEN v_salario*0.10
+						WHEN v_dnombre = 'CONTABILIDAD' AND v_salario >= 25000 THEN v_salario*0.07
+						ELSE v_salario*0.01
+					 END;
+		INSERT INTO historial_salarios VALUES
+			(v_emp_no, v_apellido, v_dnombre, v_bono, CURDATE(), v_salario, v_salario + v_bono);
+            
+		UPDATE empleados
+        SET salario = v_salario + v_bono
+        WHERE emp_no = v_emp_no;
+        
+	END LOOP;
+    
+    CLOSE c_empleados;
+END //
+DELIMITER ;
