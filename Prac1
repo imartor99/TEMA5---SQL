@@ -1,0 +1,444 @@
+/*1. Crea una base de datos llamada procedimientos que contenga una tabla llamada cuadrados. La tabla cuadrados debe tener dos columnas de tipo INT UNSIGNED, una columna llamada número y otra columna llamada cuadrado.
+Una vez creada la base de datos y la tabla deberá crear un procedimiento llamado calcular_cuadrados con las siguientes características. El procedimiento recibe un parámetro de entrada llamado tope de tipo INT UNSIGNED 
+y calculará el valor de los cuadrados de los primeros números naturales hasta el valor introducido como parámetro. El valor del números y de sus cuadrados deberán ser almacenados en la tabla cuadrados que hemos creado previamente.
+Tenga en cuenta que el procedimiento deberá eliminar el contenido actual de la tabla antes de insertar los nuevos valores de los cuadrados que va a calcular.*/
+DROP DATABASE IF EXISTS procedimientos;
+CREATE DATABASE procedimientos;
+USE procedimientos;
+CREATE TABLE cuadrados(
+	numero INT UNSIGNED,
+    cuadrado INT UNSIGNED
+);
+
+/* a.      Utilice un bucle WHILE para resolver el procedimiento.*/
+
+DELIMITER //
+/*DROP PROCEDURE IF EXISTS calcular_cuadrados //*/
+CREATE PROCEDURE calcular_cuadrados(IN tope INT UNSIGNED)
+BEGIN
+    
+    DECLARE i INT UNSIGNED DEFAULT 1;
+    
+   
+    DELETE FROM cuadrados;
+    
+    -- Bucle WHILE para calcular los cuadrados --
+    WHILE i <= tope DO
+        INSERT INTO cuadrados (numero, cuadrado) VALUES (i, i * i);
+        SET i = i + 1;
+    END WHILE;
+END //
+DELIMITER ;
+
+-- Llamar al procedimiento con un valor de ejemplo --
+CALL calcular_cuadrados(10);
+SET FOREIGN_KEY_CHECKS = OFF;
+
+
+SELECT * FROM cuadrados;
+
+
+/* b.     Utilice un bucle REPEAT para resolver el procedimiento.*/
+
+CREATE DATABASE IF NOT EXISTS procedimientos;
+USE procedimientos;
+
+
+CREATE TABLE IF NOT EXISTS cuadrados (
+    numero INT UNSIGNED,
+    cuadrado INT UNSIGNED
+);
+
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS calcular_cuadrados //
+CREATE PROCEDURE calcular_cuadrados(IN tope INT UNSIGNED)
+BEGIN
+    DECLARE i INT UNSIGNED DEFAULT 1;
+    
+    -- Vaciar la tabla antes de insertar nuevos valores
+    DELETE FROM cuadrados;
+    
+    -- Bucle REPEAT para calcular los cuadrados
+    REPEAT
+        INSERT INTO cuadrados (numero, cuadrado) VALUES (i, i * i);
+        SET i = i + 1;
+    UNTIL i > tope END REPEAT;
+END //
+DELIMITER ;
+
+/* c.      Utilice un bucle LOOP para resolver el procedimiento.*/
+
+CREATE DATABASE IF NOT EXISTS procedimientos;
+USE procedimientos;
+
+
+CREATE TABLE IF NOT EXISTS cuadrados (
+    numero INT UNSIGNED,
+    cuadrado INT UNSIGNED
+);
+
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS calcular_cuadrados //
+CREATE PROCEDURE calcular_cuadrados(IN tope INT UNSIGNED)
+BEGIN
+    DECLARE i INT UNSIGNED DEFAULT 1;
+    
+    -- Vaciar la tabla antes de insertar nuevos valores
+    DELETE FROM cuadrados;
+    
+    -- Bucle LOOP para calcular los cuadrados
+    loop_label: LOOP
+        IF i > tope THEN
+            LEAVE loop_label;
+        END IF;
+        
+        INSERT INTO cuadrados (numero, cuadrado) VALUES (i, i * i);
+        SET i = i + 1;
+    END LOOP;
+END //
+DELIMITER ;
+
+/*2. Crea una base de datos llamada procedimientos que contenga una tabla llamada pares y otra tabla llamada impares. Las dos tablas deben tener única columna llamada número
+ y el tipo de dato de esta columna debe ser INT UNSIGNED.*/
+DROP DATABASE IF EXISTS procedimientos;
+CREATE DATABASE IF NOT EXISTS procedimientos;
+USE procedimientos;
+
+CREATE TABLE IF NOT EXISTS pares (
+    numero INT UNSIGNED
+);
+
+CREATE TABLE IF NOT EXISTS impares (
+    numero INT UNSIGNED
+);
+
+/*Una vez creada la base de datos y las tablas deberá crear un procedimiento llamado calcular_pares_impares con las siguientes características. 
+El procedimiento recibe un parámetro de entrada llamado tope de tipo INT UNSIGNED y deberá almacenar en la tabla pares aquellos números pares que existan
+ entre el número 1 el valor introducido como parámetro. Habrá que realizar la misma operación para almacenar los números impares en la tabla impares.*/
+/*Tenga en cuenta que el procedimiento deberá eliminar el contenido actual de las tablas antes de insertar los nuevos valores.*/
+
+/*A. Utilice un bucle WHILE para resolver el procedimiento.*/
+DELIMITER //
+DROP PROCEDURE IF EXISTS calcular_pares_impares_while //
+CREATE PROCEDURE calcular_pares_impares_while(IN tope INT UNSIGNED)
+BEGIN
+    DECLARE i INT UNSIGNED DEFAULT 1;
+
+    DELETE FROM pares;
+    DELETE FROM impares;
+
+    WHILE i <= tope DO
+        IF i % 2 = 0 THEN
+            INSERT INTO pares (numero) VALUES (i);
+        ELSE
+            INSERT INTO impares (numero) VALUES (i);
+        END IF;
+        SET i = i + 1;
+    END WHILE;
+END //
+DELIMITER ;
+
+/*B. Utilice un bucle REPEAT para resolver el procedimiento.*/
+DELIMITER //
+DROP PROCEDURE IF EXISTS calcular_pares_impares_while //
+CREATE PROCEDURE calcular_pares_impares_repeat(IN tope INT UNSIGNED)
+BEGIN
+    DECLARE i INT UNSIGNED DEFAULT 1;
+
+    DELETE FROM pares;
+    DELETE FROM impares;
+
+    REPEAT
+        IF i % 2 = 0 THEN
+            INSERT INTO pares (numero) VALUES (i);
+        ELSE
+            INSERT INTO impares (numero) VALUES (i);
+        END IF;
+        SET i = i + 1;
+    UNTIL i > tope
+    END REPEAT;
+END //
+DELIMITER ;
+
+/*C. Utilice un bucle LOOP para resolver el procedimiento.*/
+DELIMITER //
+DROP PROCEDURE IF EXISTS calcular_pares_impares_while //
+CREATE PROCEDURE calcular_pares_impares_loop(IN tope INT UNSIGNED)
+BEGIN
+    DECLARE i INT UNSIGNED DEFAULT 1;
+
+    DELETE FROM pares;
+    DELETE FROM impares;
+
+    my_loop: LOOP
+        IF i > tope THEN
+            LEAVE my_loop;
+        END IF;
+
+        IF i % 2 = 0 THEN
+            INSERT INTO pares (numero) VALUES (i);
+        ELSE
+            INSERT INTO impares (numero) VALUES (i);
+        END IF;
+
+        SET i = i + 1;
+    END LOOP;
+END //
+DELIMITER ;
+
+/*3. Escribe una función que reciba como parámetro de entrada un valor numérico que represente un día de la semana y que devuelva una cadena de caracteres con el nombre del día de la semana correspondiente. 
+Por ejemplo, para el valor de entrada 1 debería devolver la cadena lunes.*/
+DELIMITER //
+DROP FUNCTION IF EXISTS obtener_nombre_dia //
+CREATE FUNCTION obtener_nombre_dia(dia INT) RETURNS VARCHAR(10)
+DETERMINISTIC
+BEGIN
+    DECLARE nombre VARCHAR(10);
+    
+    SET nombre = CASE dia
+        WHEN 1 THEN 'lunes'
+        WHEN 2 THEN 'martes'
+        WHEN 3 THEN 'miércoles'
+        WHEN 4 THEN 'jueves'
+        WHEN 5 THEN 'viernes'
+        WHEN 6 THEN 'sábado'
+        WHEN 7 THEN 'domingo'
+        ELSE 'Día inválido'
+    END;
+
+    RETURN nombre;
+END //
+DELIMITER ;
+
+/*4. Escribe una función que devuelva como salida el número de años que han transcurrido entre dos fechas que se reciben como parámetros de entrada.
+Por ejemplo, si pasamos como parámetros de entrada las fechas 2018-01-01 y 2008-01-01 la función tiene que devolver que han pasado 10 años.*/
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_años_transcurridos //
+CREATE FUNCTION calcular_años_transcurridos(fecha_inicio DATE, fecha_fin DATE) 
+RETURNS INT DETERMINISTIC
+BEGIN
+    RETURN TIMESTAMPDIFF(YEAR, fecha_fin, fecha_inicio);
+END //
+DELIMITER ;
+
+/*5.     Escriba una función llamada calcular_años que reciba una fecha y devuelva el número de años que han pasado desde la fecha actual hasta la fecha pasada como parámetro:
+Función: calcular_edad
+Entrada: Fecha
+Salida: Número de años (entero)
+Para realizar esta función puede hacer uso de las siguientes funciones que nos proporciona MySQL:
+
+DATEDIFF
+ABS */
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_años //
+CREATE FUNCTION calcular_años(fecha DATE) RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE dias INT;
+    DECLARE años INT;
+    
+    -- Calculamos la diferencia en días entre la fecha actual y la fecha proporcionada
+    SET dias = ABS(DATEDIFF(NOW(), fecha));
+    
+    -- Convertimos la diferencia de días en años aproximados
+    SET años = dias DIV 365;
+    
+    RETURN años;
+END //
+DELIMITER ;
+
+/*6.     Crea una base de datos llamada test que contenga una tabla llamada alumno. La tabla debe tener cuatro columnas:
+id: entero sin signo (clave primaria).
+nombre: cadena de 50 caracteres.
+apellido1: cadena de 50 caracteres.
+apellido2: cadena de 50 caracteres.
+Una vez creada la base de datos y la tabla deberá crear un procedimiento llamado insertar_alumno con las siguientes características. 
+El procedimiento recibe cuatro parámetros de entrada (id, nombre, apellido1, apellido2) y los insertará en la tabla alumno. 
+El procedimiento devolverá como salida un parámetro llamado error que tendrá un valor igual a 0 si la operación se ha podido realizar con éxito y un valor igual a 1 en caso contrario.
+Deberá manejar los errores que puedan ocurrir cuando se intenta insertar una fila que contiene una clave primaria repetida.*/
+
+CREATE DATABASE IF NOT EXISTS test;
+USE test;
+
+
+CREATE TABLE IF NOT EXISTS alumno (
+    id INT UNSIGNED PRIMARY KEY,
+    nombre VARCHAR(50),
+    apellido1 VARCHAR(50),
+    apellido2 VARCHAR(50)
+);
+
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS insertar_alumno //
+CREATE PROCEDURE insertar_alumno(
+    IN p_id INT UNSIGNED,
+    IN p_nombre VARCHAR(50),
+    IN p_apellido1 VARCHAR(50),
+    IN p_apellido2 VARCHAR(50),
+    OUT p_error INT
+)
+BEGIN
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET p_error = 1;
+    
+    SET p_error = 0;
+    
+    INSERT INTO alumno (id, nombre, apellido1, apellido2)
+    VALUES (p_id, p_nombre, p_apellido1, p_apellido2);
+END //
+DELIMITER ;
+
+/*7. Escribe las sentencias SQL necesarias para crear una base de datos llamada test, una tabla llamada alumnos y 4 sentencias de inserción para inicializar la tabla. La tabla alumnos está formada por las siguientes columnas:
+id (entero sin signo y clave primaria)
+nombre (cadena de caracteres)
+apellido1 (cadena de caracteres)
+apellido2 (cadena de caracteres
+fecha_nacimiento (fecha)
+Una vez creada la tabla se decide añadir una nueva columna a la tabla llamada edad que será un valor calculado a partir de la columna fecha_nacimiento. 
+Escriba la sentencia SQL necesaria para modificar la tabla y añadir la nueva columna.*/
+
+DROP DATABASE test;
+CREATE DATABASE test;
+USE test;
+CREATE TABLE alumnos (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50),
+    apellido1 VARCHAR(50),
+    apellido2 VARCHAR(50),
+    fecha_nacimiento DATE
+);
+
+INSERT INTO alumnos (nombre, apellido1, apellido2, fecha_nacimiento) 
+VALUES 
+('Alex', 'Pérez', 'García', '2000-05-15'),
+('María', 'López', 'Fernández', '1998-08-22'),
+('Nacho', 'Martínez', 'Ruiz', '1995-12-10'),
+('Fran', 'Gómez', 'Sánchez', '2002-03-05');
+
+-- Añadir la columna edad calculada a partir de fecha_nacimiento
+ALTER TABLE alumnos ADD COLUMN edad INT GENERATED ALWAYS AS (TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE())) VIRTUAL;
+
+
+-- Ahora escriba un procedimiento que permita calcular la edad de todos los alumnmos que ya existen en la tabla. 
+-- Para esto será necesario crear un procedimiento llamado actualizar_columna_edad que calcule la edad de cada alumno y actualice la tabla. 
+-- Este procedimiento hará uso de la función calcular_años realizada anteriormente.
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_años //
+CREATE FUNCTION calcular_años(fecha_nacimiento DATE) RETURNS INT DETERMINISTIC
+BEGIN
+    RETURN TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE());
+END //
+DELIMITER ;
+
+-- Crear el procedimiento actualizar_columna_edad
+DELIMITER //
+DROP PROCEDURE IF EXISTS actualizar_columna_edad //
+CREATE PROCEDURE actualizar_columna_edad()
+BEGIN
+    UPDATE alumnos 
+    SET edad = calcular_años(fecha_nacimiento);
+END //
+DELIMITER ;
+
+CALL actualizar_columna_edad();
+
+/*8. Modifica la tabla alumnos del ejercicio anterior para añadir una nueva columna email. Una vez que hemos modificado la tabla necesitamos asignarle una dirección de correo electrónico de forma automática.
+Escriba un procedimiento llamado crear_email que dados los parámetros de entrada: nombre, apellido1, apellido2 y dominio, cree una dirección de email y la devuelva como salida.
+Procedimiento: crear_email
+Entrada:
+nombre (cadena de caracteres)
+apellido1 (cadena de caracteres)
+apellido2 (cadena de caracteres)
+dominio (cadena de caracteres)
+Salida:
+email (cadena de caracteres)
+devuelva una dirección de correo electrónico con el siguiente formato:
+El primer carácter del parámetro nombre.
+Los tres primeros caracteres del parámetro apellido1.
+Los tres primeros caracteres del parámetro apellido2.
+El carácter @.
+El dominio pasado como parámetro.*/
+
+ALTER TABLE alumnos ADD COLUMN email VARCHAR(255);
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS crear_email //
+CREATE PROCEDURE crear_email(
+    IN nombre VARCHAR(50), 
+    IN apellido1 VARCHAR(50), 
+    IN apellido2 VARCHAR(50), 
+    IN dominio VARCHAR(50), 
+    OUT email VARCHAR(255)
+)
+BEGIN
+
+    SET email = CONCAT(
+        LEFT(nombre, 1),
+        LEFT(apellido1, 3),
+        LEFT(apellido2, 3),
+        '@',
+        dominio
+    );
+END //
+DELIMITER ;
+
+/*Ahora escriba un procedimiento que permita crear un email para todos los alumnos que ya existen en la tabla. Para esto será necesario crear un procedimiento llamado actualizar_columna_email que actualice la columna email de la tabla alumnos. 
+Este procedimiento hará uso del procedimiento crear_email que hemos creado en el paso anterior.*/
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS actualizar_columna_email //
+CREATE PROCEDURE actualizar_columna_email(IN dominio VARCHAR(50))
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_id INT;
+    DECLARE v_nombre VARCHAR(50);
+    DECLARE v_apellido1 VARCHAR(50);
+    DECLARE v_apellido2 VARCHAR(50);
+    DECLARE v_email VARCHAR(255);
+    
+    
+    DECLARE cur CURSOR FOR SELECT id, nombre, apellido1, apellido2 FROM alumnos;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO v_id, v_nombre, v_apellido1, v_apellido2;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        CALL crear_email(v_nombre, v_apellido1, v_apellido2, dominio, v_email);
+        
+        UPDATE alumnos SET email = v_email WHERE id = v_id;
+    END LOOP;
+    
+    CLOSE cur;
+END //
+DELIMITER ;
+
+
+/*9. Escribe un procedimiento llamado crear_lista_emails_alumnos que devuelva la lista de emails de la tabla alumnos separados por un punto y coma. Ejemplo: juan@iescelia.org;maria@iescelia.org;pepe@iescelia.org;lucia@iescelia.org.*/
+DELIMITER //
+DROP PROCEDURE IF EXISTS crear_lista_emails_alumno //
+CREATE PROCEDURE crear_lista_emails_alumnos(OUT lista_emails TEXT)
+BEGIN
+    DECLARE email_actual VARCHAR(255);
+    DECLARE fin INT DEFAULT 0;
+    DECLARE cur CURSOR FOR SELECT email FROM alumnos;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET fin = 1;
+    
+    SET lista_emails = '';
+    
+    OPEN cur;
+    bucle: LOOP
+        FETCH cur INTO email_actual;
+        IF fin = 1 THEN
+            LEAVE bucle;
+        END IF;
+        SET lista_emails = CONCAT(lista_emails, IF(lista_emails = '', '', ';'), email_actual);
+    END LOOP;
+    CLOSE cur;
+END //
+DELIMITER ;
