@@ -1,0 +1,422 @@
+/* FUNCIONES
+
+Crea dos tablas:
+·CASA (código, descripción, largo, ancho, área, valor, perímetro)
+·VALORMETRO (valor)
+
+1.  Crear una función que calcule el área de la casa.
+2.  Crear una función que calcule el perímetro de la casa.
+3.  Crear una función que calcule el valor de la casa teniendo en cuenta que recibe tres parámetros
+ el largo, el ancho y el valor del metro cuadrado. El valor es el área por el valor del metro cuadrado.  */
+ 
+ CREATE TABLE CASA(
+	codigo INT PRIMARY KEY AUTO_INCREMENT,
+    descripcion VARCHAR(255),
+    largo DECIMAL(10,2),
+    ancho DECIMAL(10,2),
+    area DECIMAL(10,2),
+    valor DECIMAL(10,2),
+    perimetro DECIMAL(10,2)
+);
+
+CREATE TABLE VALORMETRO(
+	valor DECIMAL(10,2)
+);
+
+INSERT INTO VALORMETRO (valor) VALUES (10.50);  -- Ejemplo de valor de metro cuadrado
+
+    
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_area //
+CREATE FUNCTION calcular_area(largo DECIMAL (10,2), ancho DECIMAL(10,2))
+RETURNS DECIMAL (10,2)
+DETERMINISTIC
+BEGIN
+	RETURN largo*ancho;
+END //
+DELIMITER ;
+
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_perimetro //
+CREATE FUNCTION calcular_perimetro(largo DECIMAL(10,2), ancho DECIMAL(10,2))
+RETURNS DECIMAL(10,2) 
+DETERMINISTIC
+BEGIN
+    RETURN 2 * (largo + ancho);
+END //
+DELIMITER ;
+
+-- Función para calcular el valor de la casa
+DELIMITER //
+DROP FUNCTION IF EXISTS calcular_valor //
+CREATE FUNCTION calcular_valor(largo DECIMAL(10,2), ancho DECIMAL(10,2), valor DECIMAL(10,2))
+RETURNS DECIMAL(10,2) 
+DETERMINISTIC
+BEGIN
+    RETURN (largo * ancho) * valor;
+END //
+DELIMITER ;
+
+/*PROCEDIMIENTOS*/
+
+/*  4. Construir un procedimiento que almacene en la tabla casa ya con la información calculada (llame a las funciones necesarias). 
+Tenga en cuenta lo siguiente para llamar la función que calcula el valor de la casa primero debe  buscar  el valor guardado en valor metro.  */
+DELIMITER //
+DROP PROCEDURE IF EXISTS insertar_casa //
+CREATE PROCEDURE insertar_casa(IN p_descripcion VARCHAR(255), IN p_largo DECIMAL(10,2), IN p_ancho DECIMAL(10,2))
+BEGIN
+    DECLARE v_valor_metro DECIMAL(10,2);
+    SET v_valor_metro = (SELECT valor FROM VALORMETRO LIMIT 1);
+    
+    INSERT INTO CASA (descripcion, largo, ancho, area, valor, perimetro)
+    VALUES (p_descripcion, p_largo, p_ancho, 
+            calcular_area(p_largo, p_ancho), 
+            calcular_valor(p_largo, p_ancho, v_valor_metro), 
+            calcular_perimetro(p_largo, p_ancho));
+END //
+DELIMITER ;
+
+/* 5. Dada la siguiente tabla persona (peso, estado) Realizar un procedimiento para determinar
+ si la persona puede donar sangre: si el peso es menor a 50 guarde en estado “no admitido”, 
+ en caso contrario sería “admitido”.  */
+ CREATE TABLE PERSONA(
+	peso DECIMAL(10,2),
+    estado VARCHAR(20)
+);
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS donar_sangre //
+CREATE PROCEDURE donar_sangre(IN p_peso DECIMAL(10,2))
+BEGIN
+	DECLARE v_estado VARCHAR(50);
+	IF p_peso < 50 THEN
+		SET v_estado = 'No admitido';
+	ELSE
+		SET v_estado = 'Admitido';
+	END IF;
+    
+    INSERT INTO PERSONA (peso, estado) VALUES (p_peso, v_estado);
+END //
+DELIMITER ;
+
+
+/* 6. Para la base de datos notas_alumnos, crea un procedimiento que reciba el dni de un alumno y devuelva el total
+ de asignaturas aprobadas y el total de asignaturas suspensas. Si el dni no existe devuelve valores a 0.   */
+DELIMITER //
+DROP PROCEDURE IF EXISTS obtener_resultados //
+CREATE PROCEDURE obtener_resultados(DNI_alumno VARCHAR(10))
+BEGIN
+    DECLARE total_aprobadas INT DEFAULT 0;
+    DECLARE total_suspensas INT DEFAULT 0;
+    
+    -- Comprobamos si el DNI existe en la tabla alumnos
+    IF EXISTS (SELECT 1 FROM alumnos WHERE DNI = DNI_alumno) THEN
+        
+        -- Contamos las asignaturas aprobadas (NOTA >= 5)
+        SELECT COUNT(*) INTO total_aprobadas
+        FROM notas
+        WHERE DNI = DNI_alumno AND NOTA >= 5;
+        
+        -- Contamos las asignaturas suspensas (NOTA < 5)
+        SELECT COUNT(*) INTO total_suspensas
+        FROM notas
+        WHERE DNI = DNI_alumno AND NOTA < 5;
+    END IF;
+    
+    -- Devolvemos los resultados
+    SELECT total_aprobadas AS 'Aprobadas', total_suspensas AS 'Suspensas';
+    
+END //
+DELIMITER ;
+
+ /* 7. Diseña un procedimiento al que pasemos como parámetro de entrada el nombre de uno de los módulos existentes en la BD y visualice
+ el nombre de los alumnos que lo han cursado junto a su nota. Al final del listado debe aparecer el nº de suspensos, aprobados, notables y sobresalientes.
+ Asimismo, deben aparecer al final los nombres y notas de los alumnos que tengan la nota más alta y la más baja.
+ Debes comprobar que las tablas tengan almacenada información y que exista el módulo cuyo nombre pasamos como parámetro al procedimiento. */
+ /* ListadoAlumnosNotas (asignaturas)
+ 
+ BEGIN
+	Declaraciones
+	Declarar cursor
+    Comprobacion Errores
+    Recorrer alumnos con sus notas
+		Mostrar AlumnoNota;
+        ActualizarContadoresNotas
+        EncontrarNotaMaxMin
+END  */
+
+SELECT a.apenom, n.nota
+FROM alumnos a  JOIN notas n USING (dni) JOIN asignaturas asi USING(COD)
+WHERE asi.nombre=p_asig;
+
+DELIMITER // 
+DROP PROCEDURE IF EXISTS ListadoNotas //
+CREATE PROCEDURE ListadoNotas(in p_asig VARCHAR(25))
+BEGIN
+    DECLARE cont_susp INT DEFAULT 0;
+    DECLARE cont_apro INT DEFAULT 0;
+    DECLARE cont_notables INT DEFAULT 0;
+    DECLARE cont_sobresa INT DEFAULT 0;
+    DECLARE v_nota_max DECIMAL(4,2) DEFAULT -1;
+    DECLARE v_nota_min DECIMAL(4,2) DEFAULT 11;
+    DECLARE v_alumno_max VARCHAR(45);
+    DECLARE v_alumno_min VARCHAR(45);
+
+    DECLARE v_apenom VARCHAR(30);
+    DECLARE v_nota DECIMAL(4,2);
+    DECLARE terminado BOOLEAN DEFAULT FALSE;
+
+    DECLARE c_notas CURSOR FOR 
+        SELECT a.apenom, n.nota
+        FROM alumnos a  
+        JOIN notas n USING (dni) 
+        JOIN asignaturas asi USING(COD)
+        WHERE asi.nombre = p_asig;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET terminado = TRUE;
+    
+    -- Comprobar errores (verificar existencia del módulo y datos)
+    CALL ComprobarErrores(p_asig);
+    
+    OPEN c_notas;
+
+    -- Bucle de recorrido de los datos de los alumnos
+    bucle: LOOP
+        FETCH c_notas INTO v_apenom, v_nota;
+        IF terminado THEN
+            LEAVE bucle;
+        END IF;
+
+        -- Actualizar contadores de notas
+        CALL ActualizarContadoresNotas(v_nota, cont_susp, cont_apro, cont_notables, cont_sobresa);
+        
+        -- Encontrar las notas máxima y mínima y sus correspondientes alumnos
+        CALL EncontrarMaxMin(v_nota, v_apenom, v_nota_max, v_nota_min, v_alumno_max, v_alumno_min);
+    END LOOP;
+
+    CLOSE c_notas;
+
+    -- Mostrar resultados
+    -- Mostrar alumnos con sus notas
+    SELECT a.apenom, n.nota
+    FROM alumnos a  
+    JOIN notas n USING (dni) 
+    JOIN asignaturas asi USING(COD)
+    WHERE asi.nombre = p_asig;
+
+    -- Mostrar contadores
+    SELECT 
+        CONCAT('Suspensos: ', cont_susp, ' Aprobados: ', cont_apro, 
+               ' Notables: ', cont_notables, ' Sobresalientes: ', cont_sobresa) AS Resultado;
+
+    -- Mostrar alumno con la nota máxima y mínima
+    SELECT 
+        CONCAT('Alumno con la nota máxima: ', v_alumno_max, ' Nota: ', v_nota_max) AS MaxNota,
+        CONCAT('Alumno con la nota mínima: ', v_alumno_min, ' Nota: ', v_nota_min) AS MinNota;
+
+END //
+DELIMITER ;
+
+-- Procedimiento ComprobarErrores
+DELIMITER //
+DROP PROCEDURE IF EXISTS ComprobarErrores //
+CREATE PROCEDURE ComprobarErrores(in p_asig VARCHAR(25))
+BEGIN
+    -- Comprobar si la asignatura existe
+    IF NOT EXISTS (SELECT 1 FROM asignaturas WHERE nombre = p_asig) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La asignatura no existe';
+    END IF;
+
+    -- Comprobar si hay datos de alumnos y notas para la asignatura
+    IF NOT EXISTS (
+        SELECT 1
+        FROM alumnos a
+        JOIN notas n USING(dni)
+        JOIN asignaturas asi USING(COD)
+        WHERE asi.nombre = p_asig
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No hay alumnos ni notas para la asignatura';
+    END IF;
+END //
+DELIMITER ;
+
+-- Procedimiento ActualizarContadoresNota
+DELIMITER //
+DROP PROCEDURE IF EXISTS ActualizarContadoresNotas //
+CREATE PROCEDURE ActualizarContadoresNotas(
+    IN p_nota DECIMAL(4,2),
+    OUT p_cont_susp INT,
+    OUT p_cont_apro INT,
+    OUT p_cont_notables INT,
+    OUT p_cont_sobresa INT
+)
+BEGIN
+    IF p_nota < 5 THEN
+        SET p_cont_susp = p_cont_susp + 1;
+    ELSEIF p_nota < 6 THEN
+        SET p_cont_apro = p_cont_apro + 1;
+    ELSEIF p_nota < 7 THEN
+        SET p_cont_notables = p_cont_notables + 1;
+    ELSE
+        SET p_cont_sobresa = p_cont_sobresa + 1;
+    END IF;
+END //
+DELIMITER ;
+
+-- Procedimiento EncontrarMaxMin
+DELIMITER //
+DROP PROCEDURE IF EXISTS EncontrarMaxMin //
+CREATE PROCEDURE EncontrarMaxMin(
+    IN p_nota DECIMAL(4,2),
+    IN p_apenom VARCHAR(45),
+    OUT p_nota_max DECIMAL(4,2),
+    OUT p_nota_min DECIMAL(4,2),
+    OUT p_alumno_max VARCHAR(45),
+    OUT p_alumno_min VARCHAR(45)
+)
+BEGIN
+    IF p_nota > p_nota_max THEN
+        SET p_nota_max = p_nota;
+        SET p_alumno_max = p_apenom;
+    END IF;
+
+    IF p_nota < p_nota_min THEN
+        SET p_nota_min = p_nota;
+        SET p_alumno_min = p_apenom;
+    END IF;
+END //
+DELIMITER ;
+
+
+/* TRIGGERS */
+
+/* Crear una base de datos llamada ejemplo y dos tablas:
+· Persona (codigo, nombre, edad)
+· Nuevosdatos (codigo,cuando,tipo)  */
+CREATE DATABASE ejemplo;
+USE ejemplo;
+
+CREATE TABLE persona(
+	cod INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(30),
+    edad INT
+);
+
+CREATE TABLE nuevosDatos(
+	cod INT AUTO_INCREMENT PRIMARY KEY,
+    cuando DATETIME,
+    tipo VARCHAR(30)
+);
+
+/*8. Crear un trigger para que se añada un dato en la segunda tabla cada vez que insertemos en la primera, los datos que
+ introduzcamos serán: el código de la persona, la fecha actual y la letra "i" para indicar que el cambio ha sido la inserción de un dato nuevo. 
+ Comprueba que funciona, consultando la tabla Nuevosdatos cada vez que insertes datos.*/
+ DELIMITER //
+DROP TRIGGER IF EXISTS after_insert_persona //
+CREATE TRIGGER after_insert_persona
+AFTER INSERT ON persona
+FOR EACH ROW
+BEGIN
+    INSERT INTO nuevosDatos (cod, cuando, tipo)
+    VALUES (NEW.cod, NOW(), 'i');
+END //
+DELIMITER ;
+
+INSERT INTO persona (cod, nombre, edad) VALUES (2, 'Juan Pérez', 30);
+SELECT * FROM nuevosdatos;
+
+/* 9. Controlar mediante  triggers el  número de registros de la tabla empleados, manteniendo  ese número actualizado en una tabla llamada Cuenta. 
+Se actuará después de una instrucción insert o delete ejemplo si se introduce un registro nuevo en la tabla 
+aumentará en uno el contador, si se elimina un registro se disminuirá en uno el contador.  */
+CREATE TABLE cuenta (
+    contador INT
+);
+
+-- Inicializamos la tabla Cuenta con el valor 0
+INSERT INTO cuenta (contador) VALUES (0);
+ 
+ -- Trigger que aumenta el contador de registros
+DELIMITER //
+DROP TRIGGER IF EXISTS after_insert_empleados //
+CREATE TRIGGER after_insert_empleados
+AFTER INSERT ON empleados
+FOR EACH ROW
+BEGIN
+    UPDATE cuenta
+    SET contador = contador + 1;
+END //
+DELIMITER ;
+
+-- Trigger que disminuye el contador de registros
+DELIMITER //
+DROP TRIGGER IF EXISTS after_delete_empleados //
+CREATE TRIGGER after_delete_empleados
+AFTER DELETE ON empleados
+FOR EACH ROW
+BEGIN
+	UPDATE cuenta
+    SET contador = contador - 1;
+END // 
+DELIMITER ;
+
+-- Verificamos 
+INSERT INTO empleados (emp_no, apellido, oficio, director, fecha_alta, salario, comision, dep_no) 
+VALUES (1, 'Pérez', 'Manager', NULL, '2025-03-28', 50000, NULL, 10);
+
+SELECT * FROM cuenta;
+
+DELETE FROM empleados WHERE emp_no = 1;
+
+SELECT * FROM articuloscuenta;
+
+/* 10. Crear un trigger  para la base de datos facsys que actualice el campo stock de artículos cada vez que se realice un pedido, restando la cantidad pedida del artículo. */
+DELIMITER //
+DROP TRIGGER IF EXISTS actualizar_stock_after_insert //
+CREATE TRIGGER actualizar_stock_after_insert
+AFTER INSERT ON detalles
+FOR EACH ROW
+BEGIN
+    -- Actualizar el stock del artículo después de un pedido
+    UPDATE articulos
+    SET stock = stock - NEW.cantidad
+    WHERE codarticulo = NEW.codarticulo;
+END //
+DELIMITER ;
+
+-- Actualizo el stock de articulos ya que ese campo esta con valores null
+UPDATE articulos
+SET stock = 10
+WHERE codarticulo IN ('CAP01', 'COR89', 'PAN3', 'PEL45', 'RAQ01');
+
+-- Verifico el funcionamiento del trigger
+SELECT codarticulo, stock FROM articulos WHERE codarticulo = 'COR89';
+INSERT INTO detalles (numpedido, numorden, codarticulo, cantidad, precio)
+VALUES (3, 6, 'COR89', 3, 80.40);  -- Pedido de 3 unidades de CORCHO REDONDO
+SELECT codarticulo, stock FROM articulos WHERE codarticulo = 'COR89';
+
+/* 11.  Crear un trigger que cada vez que se elimine  un artículo, almacene la información del mismo en una nueva tabla junto con la fecha y la hora de la eliminación.  */
+    
+CREATE TABLE historial_eliminaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codarticulo CHAR(5),
+    nombre CHAR(50),
+    precio FLOAT(6,2),
+    stock SMALLINT,
+    idcategoria TINYINT,
+    fecha_eliminacion DATE
+    );
+    
+DELIMITER //
+DROP TRIGGER IF EXISTS guardar_historial_eliminacion //
+CREATE TRIGGER guardar_historial_eliminacion
+AFTER DELETE ON articulos
+FOR EACH ROW
+BEGIN
+    INSERT INTO historial_eliminaciones (codarticulo, nombre, precio, stock, idcategoria, fecha_eliminacion)
+    VALUES (OLD.codarticulo, OLD.nombre, OLD.precio, OLD.stock, OLD.idcategoria, CURDATE());
+END //
+DELIMITER ;
+
+-- Verificamos su funcionamiento
+DELETE FROM articulos WHERE codarticulo = 'CAP01'; 
+SELECT * FROM historial_eliminaciones;
